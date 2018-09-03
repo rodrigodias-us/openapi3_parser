@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "yaml"
+require "json"
+
 module Openapi3Parser
   # An abstract class which is used to provide a foundation for classes that
   # represent the different means of input an OpenAPI document can have. It is
@@ -62,8 +65,24 @@ module Openapi3Parser
     def initialize_contents
       return if access_error
       @contents = parse_contents
-    rescue ::StandardError => e
-      @parse_error = Error::UnparsableInput.new(e.message)
+    end
+
+    def parse_string(string, filename = nil)
+      begin
+        output = StringParser.call(string, filename)
+      rescue JSON::ParserError, Psych::Exception => e
+        @parse_error = Error::UnparsableInput.new(e)
+        return
+      end
+
+      unless output.respond_to?(:keys)
+        @parse_error = Error::UnparsableInput.new(
+          "Expected a YAML or JSON object"
+        )
+        return
+      end
+
+      output
     end
   end
 end

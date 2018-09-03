@@ -67,14 +67,30 @@ module Openapi3Parser
       private
 
       def parse_contents
-        begin
-          file = URI.parse(request_url).open
-        rescue ::StandardError => e
-          @access_error = Error::InaccessibleInput.new(e.message)
+        uri = URI.parse(request_url)
+
+        unless uri.absolute?
+          @access_error = Error::InaccessibleInput.new(
+            "Can't open a relative URI - #{uri}"
+          )
           return
         end
+
+        unless uri.respond_to?(:open)
+          @access_error = Error::InaccessibleInput.new(
+            "Don't know how to open URI's with a scheme of #{uri.scheme}"
+          )
+          return
+        end
+
+        file = uri.open
         @resolved_url = file.base_uri.to_s
-        StringParser.call(file.read, resolved_url)
+
+        parse_string(file.read, resolved_url)
+      rescue URI::Error => e
+        @access_error = Error::InaccessibleInput.new(e)
+      rescue OpenURI::HTTPError => e
+        @access_error = Error::InaccessibleInput.new(e)
       end
 
       class RelativeUrlDifference
