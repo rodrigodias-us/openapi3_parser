@@ -186,7 +186,12 @@ module Openapi3Parser
 
       # @return [Any]
       def example
-        node_data["example"]
+        node_data["examples"]
+      end
+
+      # @return [Any]
+      def examples
+        node_data["examples"]
       end
 
       # @return [Boolean]
